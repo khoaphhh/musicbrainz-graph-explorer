@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MusicBrainz Graph Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="https://unpkg.com/cytoscape@3.31.2/dist/cytoscape.min.js"></script>
+</head>
+<body style="overflow: hidden; height: 100vh; margin: 0; display: flex; flex-direction: column;">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="MusicBrainz Explorer Logo" style="position: absolute; top: 15px; left: 15px; width: 300px; height: auto; z-index: 1000;"> 
+    
+    <header class="workspace-header">
+        <nav class="mode-switch" aria-label="Explorer mode">
+            <button class="mode-tab active" data-mode="graph" type="button">Graph Explorer</button>
+            <button class="mode-tab" data-mode="route" type="button">Route Planner</button>
+        </nav>
+    </header>
+    
+    <main class="workspace">
+        
+        <section id="graph-mode" class="mode-view active" aria-labelledby="graph-mode-title" style="height: 100%;">
+            <div style="display: flex; width: 100%; height: 100%;">
+                
+                <div class="graph-main">
+                    <div id="graph-canvas" class="canvas" aria-label="Artist ego network"></div>
+                    <div id="graph-empty" class="canvas-empty">
+                        <strong>Start exploring</strong>
+                        <span>Search in the right panel to load a focused network.</span>
+                    </div>
+                    
+                    <div id="history-container" class="history-container hidden">
+                        <button id="history-prev" class="history-nav"><</button>
+                        <div id="graph-history" class="history-scroll"></div>
+                        <button id="history-next" class="history-nav">></button>
+                    </div>
+                </div>
+
+                <aside class="graph-sidebar" style="width: 400px; flex: none; border-left: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px; gap: 16px; background: #fafafa; height: 100%; box-sizing: border-box;">
+                    
+                    <div class="clean-panel" style="flex: none; display: flex; flex-direction: column; gap: 12px;">
+                        <div class="search-field" style="width: 100%;">
+                            <label class="sr-only" for="graph-search">Search artist</label>
+                            <input id="graph-search" type="search" placeholder="Search artist or GID" autocomplete="off" maxlength="100" style="width: 100%;">
+                            <div id="graph-suggestions" class="suggestions hidden"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                            <label class="range-control" style="flex: 1; margin: 0;">Nodes
+                                <input id="graph-limit" type="range" min="10" max="50" value="30">
+                                <output id="graph-limit-value">30</output>
+                            </label>
+                            <button id="graph-fit" class="quiet-button" type="button" style="flex: 0 0 80px; margin: 0; justify-content: center;">Fit</button>
+                        </div>
+                    </div>
+
+                    <div id="graph-status" class="status-line" aria-live="polite" style="flex: none;">Search for an artist to begin.</div>
+                    
+                    <div id="details-panel" class="clean-panel" style="flex: 4; min-height: 0; display: flex; flex-direction: column;">
+                        <p class="eyebrow" style="flex: none;">Connection Details</p>
+                        <div id="details-path" class="details-title" style="flex: none; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border);"><strong>Connections</strong></div>
+                        <div id="details-content" class="details-text" style="flex: 1; overflow-y: auto; min-height: 0; padding-right: 4px;"><span class="muted">Select a node or a line to discover their relationships.</span></div>
+                    </div>
+
+                    <div id="relations-panel" class="clean-panel hidden" style="flex: 6; min-height: 0; display: flex; flex-direction: column;">
+                        <p class="eyebrow" style="flex: none;">All Direct Relations (<span id="relations-count">0</span>)</p>
+                        <input type="text" id="relations-search" placeholder="Filter relations..." class="minimal-input" style="flex: none; margin-bottom: 8px;">
+                        <ul id="relations-list" class="clean-list" style="flex: 1; overflow-y: auto; min-height: 0; margin: 0; padding-right: 4px;"></ul>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <section id="route-mode" class="mode-view" aria-labelledby="route-mode-title" hidden>
+            <div style="display: flex; width: 100%; height: 100%;">
+                
+                <div class="graph-main">
+                    <div id="route-canvas" class="canvas" aria-label="Multi-stop artist route"></div>
+                    <div id="route-empty" class="canvas-empty">
+                        <strong>Plan a route</strong>
+                        <span>Add two or more artists in the right panel, then find connections.</span>
+                    </div>
+                </div>
+
+                <aside class="graph-sidebar" style="width: 400px; flex: none; border-left: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px; gap: 16px; background: #fafafa; height: 100%; box-sizing: border-box;">
+                    
+                    <div class="clean-panel" style="flex: 6; display: flex; flex-direction: column;">
+                        <p class="eyebrow" style="flex: none; margin-bottom: 8px;">Waypoints</p>
+                        <div id="route-stops" class="route-stops" style="flex: 1; overflow-y: auto;"></div>
+                        <button id="route-add-stop" class="quiet-button" type="button" style="flex: none; width: 100%; margin-top: 8px; margin-bottom: 12px;">+ Add stop</button>
+                        
+                        <div style="flex: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                            <label class="check-control">
+                                <input id="route-shortcuts" type="checkbox" checked> Show shortcuts
+                            </label>
+                            <label class="check-control">
+                                <input id="route-allow-unnamed" type="checkbox"> Allow unnamed artists
+                            </label>
+                        </div>
+                        
+                        <div style="flex: none; display: flex; gap: 12px;">
+                            <button id="route-find" class="primary-button" type="button" disabled style="flex: 1;">Find route</button>
+                            <button id="route-fit" class="quiet-button" type="button" style="flex: 0 0 80px; margin: 0; justify-content: center;">Fit</button>
+                        </div>
+                    </div>
+
+                    <div id="route-status" class="status-line" aria-live="polite">Choose at least two artists.</div>
+                    
+                    <div id="route-details-panel" class="clean-panel" style="flex: 4; display: flex; flex-direction: column;">
+                        <p class="eyebrow" style="flex: none;">Connection Details</p>
+                        <div id="route-details-path" class="details-title" style="flex: none; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border);"><strong>Connections</strong></div>
+                        <div id="route-details-content" class="details-text" style="flex: 1; overflow-y: auto;">
+                            <span class="muted">Select a line to discover their relationship.</span>
+                        </div>
+                    </div>
+                </aside>
+
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/force-simulation.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
