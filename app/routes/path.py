@@ -80,9 +80,8 @@ def multi_stop_path():
             return jsonify({'error': 'The route exceeds 30 nodes. Cannot render.'}), 400
 
         cur.execute("""
-            SELECT a.id, a.name, a.influence_score, ar.gid
+            SELECT a.id, a.name, a.influence_score, a.gid
             FROM artists_top a
-            JOIN artists ar ON a.id = ar.id
             WHERE a.id = ANY(%s);
         """, (path_nodes_sequence,))
         node_rows = cur.fetchall()

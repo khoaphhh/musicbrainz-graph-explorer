@@ -6,6 +6,5 @@
 \ir 02_import_staging.sql
 \ir 03_transform.sql
 \ir 04_indexes.sql
-\ir test_data.sql
 \ir 05_cleanup.sql
 \echo 'Imported'
