@@ -73,7 +73,7 @@ def cached_search(query, is_gid=False):
 
                     UNION ALL
 
-                    -- 3. Quét trên tên phụ (artist_aliases)
+                    -- 3. Quét trên tên phụ (artist_aliases_top)
                     SELECT a.id, a.name, a.influence_score, a.degree, a.gid, a.comment,
                            aa.name AS matched_alias,
                            CASE 
@@ -81,7 +81,7 @@ def cached_search(query, is_gid=False):
                                WHEN immutable_unaccent(aa.name) ILIKE immutable_unaccent(%s) THEN 2
                                ELSE 3
                            END AS match_rank
-                    FROM artist_aliases aa
+                    FROM artist_aliases_top aa
                     JOIN artists_top a ON a.id = aa.artist
                     WHERE immutable_unaccent(aa.name) ILIKE immutable_unaccent(%s)
                 ),

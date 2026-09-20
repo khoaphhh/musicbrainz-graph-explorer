@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS staging_artist, staging_l_artist_artist, staging_link, staging_link_type, staging_recording, staging_artist_credit_name, staging_artist_alias CASCADE;
-DROP TABLE IF EXISTS artists, artist_aliases, link_types, relations, artists_top, relations_top, relation_weights CASCADE;
+DROP TABLE IF EXISTS artists_top, relations_top, artist_aliases_top, artists, artist_aliases, link_types, relations, relation_weights CASCADE;
 
 CREATE TABLE staging_artist (id INT, gid UUID, name TEXT, sort_name TEXT, comment TEXT);
 CREATE TABLE staging_l_artist_artist (link INT, entity0 INT, entity1 INT);

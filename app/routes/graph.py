@@ -12,9 +12,8 @@ def get_graph_data(artist_id, limit, relation_types=None):
         cur = conn.cursor()
 
         cur.execute("""
-            SELECT a.id, a.name, a.influence_score, ar.gid 
-            FROM artists_top a 
-            JOIN artists ar ON a.id = ar.id 
+            SELECT a.id, a.name, a.influence_score, a.gid
+            FROM artists_top a
             WHERE a.id = %s;
         """, (artist_id,))
         center_row = cur.fetchone()
@@ -31,26 +30,24 @@ def get_graph_data(artist_id, limit, relation_types=None):
 
         if link_type_ids:
             cur.execute("""
-                SELECT a.id, a.name, a.influence_score, ar.gid
+                SELECT a.id, a.name, a.influence_score, a.gid
                 FROM (
                     SELECT target_id AS id FROM relations_top WHERE source_id = %s AND link_type_id = ANY(%s)
                     UNION
                     SELECT source_id AS id FROM relations_top WHERE target_id = %s AND link_type_id = ANY(%s)
                 ) AS links
                 JOIN artists_top a ON a.id = links.id
-                JOIN artists ar ON ar.id = a.id
                 ORDER BY a.influence_score DESC NULLS LAST;
             """, (artist_id, link_type_ids, artist_id, link_type_ids))
         else:
             cur.execute("""
-                SELECT a.id, a.name, a.influence_score, ar.gid
+                SELECT a.id, a.name, a.influence_score, a.gid
                 FROM (
                     SELECT target_id AS id FROM relations_top WHERE source_id = %s
                     UNION
                     SELECT source_id AS id FROM relations_top WHERE target_id = %s
                 ) AS links
                 JOIN artists_top a ON a.id = links.id
-                JOIN artists ar ON ar.id = a.id
                 ORDER BY a.influence_score DESC NULLS LAST;
             """, (artist_id, artist_id))
             
